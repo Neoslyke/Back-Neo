@@ -50,8 +50,10 @@ namespace Back {
                     br.ReadByte();
 
                     var player = Main.player[playerID];
-                    var deathPosition = new Vector2(player.position.X, player.position.Y);
+                    if (player == null)
+                        return;
 
+                    var deathPosition = new Vector2(player.position.X, player.position.Y);
                     playerDeathData[player.name] = (deathPosition, "death");
                     if (player == null)
                     {
