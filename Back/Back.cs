@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using Microsoft.Xna.Framework;
 using Terraria;
-using Terraria.DataStructures;
 using TerrariaApi.Server;
 using TShockAPI;
 
@@ -12,12 +14,13 @@ namespace Back
     {
         public override string Name => "Back";
         public override string Author => "Neoslyke, Melton";
-        public override Version Version => new Version(2, 1, 0);
+        public override Version Version => new Version(2, 1, 1);
         public override string Description => "Teleports you back to the last death location";
 
         private readonly Dictionary<string, Vector2> playerDeathData = new();
         private readonly HashSet<string> autoBackEnabled = new();
         private readonly HashSet<string> pendingTeleport = new();
+        private readonly HashSet<string> playerDied = new(); // Track if player actually died
 
         public Back(Main game) : base(game)
         { }
@@ -52,6 +55,7 @@ namespace Back
                 autoBackEnabled.Remove(player.Name);
                 playerDeathData.Remove(player.Name);
                 pendingTeleport.Remove(player.Name);
+                playerDied.Remove(player.Name);
             }
         }
 
@@ -68,6 +72,7 @@ namespace Back
                         tsPlayer.SendSuccessMessage("I've come to bargain!");
                     }
                     pendingTeleport.Remove(playerName);
+                    playerDied.Remove(playerName); // Clear the death flag after teleporting
                 }
             }
         }
@@ -87,7 +92,10 @@ namespace Back
                     if (player == null || string.IsNullOrEmpty(player.name))
                         return;
 
-                    if (autoBackEnabled.Contains(player.name) && playerDeathData.ContainsKey(player.name))
+                    // Only queue teleport if player actually died (not Magic Mirror/Recall)
+                    if (autoBackEnabled.Contains(player.name) && 
+                        playerDeathData.ContainsKey(player.name) &&
+                        playerDied.Contains(player.name))
                     {
                         pendingTeleport.Add(player.name);
                     }
@@ -107,6 +115,7 @@ namespace Back
                         return;
 
                     playerDeathData[player.name] = new Vector2(player.position.X, player.position.Y);
+                    playerDied.Add(player.name); // Mark that this player actually died
                 }
             }
         }
